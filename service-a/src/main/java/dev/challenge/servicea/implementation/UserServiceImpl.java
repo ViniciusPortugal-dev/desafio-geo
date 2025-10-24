@@ -24,7 +24,6 @@ public class UserServiceImpl implements UserService {
 
     private final UsuarioRepository usuarioRepository;
     private final UserBClient client;
-    private final Force422 force422;
 
     @Override
     @Transactional
@@ -34,7 +33,6 @@ public class UserServiceImpl implements UserService {
         User saved = usuarioRepository.save(UserAdapter.toNewEntity(dto));
         UserDTO out = UserAdapter.toUserDTO(saved);
         log.info("Usuário criado. id={}, externalId={}", saved.getId(), saved.getExternalId());
-        force422.registerLocalCreateSuccess();
         if (!Replication.incoming()) {
             replicateCreate(out);
         }
@@ -98,8 +96,7 @@ public class UserServiceImpl implements UserService {
 
     private void replicateCreate(UserDTO out) {
         try {
-            String forceHeader = force422.shouldForceNext422AndReset() ? "true" : null;
-            client.createUser(out, forceHeader);
+            client.createUser(out);
             log.info("Replicação create enviada ao Service B. externalId={}", out.externalId());
         } catch (Exception e) {
             log.error("Falha ao replicar usuário (create). externalId={}, err={}",

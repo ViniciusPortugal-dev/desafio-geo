@@ -1,0 +1,83 @@
+
+
+services:
+  db-a:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: servicea
+    ports: ["5433:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d servicea"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db-b:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: serviceb
+    ports: ["5434:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d serviceb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db-c:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: servicec
+    ports: ["5435:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d servicec"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  service-a:
+    build:
+      context: .
+      dockerfile: service-a/Dockerfile
+    environment:
+      APP_STATIC_TOKEN: ${APP_STATIC_TOKEN:-change-me-super-secret}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-a:5432/servicea
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      db-a:
+        condition: service_healthy
+    ports: ["8081:8081"]
+
+  service-b:
+    build:
+      context: .
+      dockerfile: service-b/Dockerfile
+    environment:
+      APP_STATIC_TOKEN: ${APP_STATIC_TOKEN:-change-me-super-secret}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-b:5432/serviceb
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      db-b:
+        condition: service_healthy
+    ports: ["8082:8082"]
+
+  service-c:
+    build:
+      context: .
+      dockerfile: service-c/Dockerfile
+    environment:
+      APP_STATIC_TOKEN: ${APP_STATIC_TOKEN:-change-me-super-secret}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-c:5432/servicec
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      db-c:
+        condition: service_healthy
+    ports: ["8083:8083"]

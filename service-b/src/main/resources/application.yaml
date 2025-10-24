@@ -1,0 +1,30 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: service-b
+  datasource:
+    url: jdbc:postgresql://db-b:5432/serviceb
+    username: app
+    password: app
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: true
+
+management:
+  endpoints:
+    web.exposure.include: health,info
+
+springdoc:
+  swagger-ui.path: /swagger-ui.html
+
+service:
+  a:
+    url: ${SERVICE_A_URL:http://service-a:8081}
+app:
+  auth:
+    static-token: ${APP_STATIC_TOKEN:change-me-super-secret}
+

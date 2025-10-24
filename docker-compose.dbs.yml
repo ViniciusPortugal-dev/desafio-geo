@@ -1,0 +1,57 @@
+services:
+  db-a:
+    image: postgres:16
+    container_name: db-a
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: servicea
+    ports: ["5433:5432"]     # localhost:5433 -> db-a
+    volumes:
+      - db_a_data:/var/lib/postgresql/data
+      # (opcional) scripts de init: rode apenas na 1ª vez do volume
+      # - ./db/init/service-a:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d servicea"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db-b:
+    image: postgres:16
+    container_name: db-b
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: serviceb
+    ports: ["5434:5432"]     # localhost:5434 -> db-b
+    volumes:
+      - db_b_data:/var/lib/postgresql/data
+      # - ./db/init/service-b:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d serviceb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db-c:
+    image: postgres:16
+    container_name: db-c
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: servicec
+    ports: ["5435:5432"]     # localhost:5435 -> db-c
+    volumes:
+      - db_c_data:/var/lib/postgresql/data
+      # - ./db/init/service-c:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d servicec"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_a_data:
+  db_b_data:
+  db_c_data:

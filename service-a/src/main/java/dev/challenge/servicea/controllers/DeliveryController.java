@@ -31,7 +31,7 @@ public class DeliveryController {
             @ApiResponse(responseCode = "409", description = "Conflito"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<DeliveryDTO> createDelivery(@RequestBody @Valid DeliveryDTO dto) {
+    public ResponseEntity<DeliveryDTO> createDelivery(@RequestBody DeliveryDTO dto) {
         return ResponseEntity.status(201).body(service.createDelivery(dto));
     }
 
@@ -45,7 +45,7 @@ public class DeliveryController {
             @ApiResponse(responseCode = "404", description = "Não encontrado"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<DeliveryDTO> updateDelivery(@PathVariable("id") Long id, @RequestBody @Valid DeliveryDTO dto) {
+    public ResponseEntity<DeliveryDTO> updateDelivery(@PathVariable("id") Long id, @RequestBody DeliveryDTO dto) {
         return ResponseEntity.ok(service.updateDelivery(id, dto));
     }
 

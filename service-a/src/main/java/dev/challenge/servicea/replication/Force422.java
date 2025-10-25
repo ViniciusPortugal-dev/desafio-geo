@@ -6,8 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class Force422 {
-    public static final String FORCE_422_HEADER = "X-Force-422";
-
     private final AtomicInteger successCounter = new AtomicInteger(0);
 
     public void registerLocalCreateSuccess() {
@@ -15,7 +13,7 @@ public class Force422 {
     }
 
     public boolean shouldForceNext422AndReset() {
-        if (successCounter.get() >= 3) {
+        if (successCounter.get() > 3) {
             successCounter.set(0);
             return true;
         }

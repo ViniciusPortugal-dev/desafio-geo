@@ -1,101 +1,114 @@
-# Desafio Técnico - Backend Java (Multi-Module)
+# Execução com Docker Compose e Endpoints (com exemplos cURL)
 
-**Stack**: Java 21, Spring Boot 3.3.x, Maven multi-módulo, PostgreSQL, Flyway, Spring Retry, Springdoc OpenAPI, Actuator, Docker Compose, OpenCSV.
+Este projeto já inclui um arquivo **`.env`** na raiz com o token estático do desafio para facilitar a execução.
 
-## Módulos
-- `common`: DTOs, erros, logging, config util
-- `service-a`: CRUD principal (Usuario, Entregador, Pedido) + replicação para `service-b` com retry e exceção 422 no 4º POST
-- `service-b`: CRUD espelhado (Usuario, Pedido com dados do entregador denormalizados) + endpoints de replicação
-- `service-c`: Exportação CSV de pedidos lendo **direto** do banco do `service-b`
+---
+## 🧰 1) Pré-requisitos
+- Docker Desktop (Compose v2)
+- Java (21)
+- Docker e Docker Compose
+- Maven 3.9+
+- Portas livres: 8081, 8082, 8083, 5433, 5434, 5435
 
-## Rodando com Docker
-```bash
-./mvnw -q -T 1C clean package -DskipTests
-docker compose up --build
+---
+## ⚙️ 2) Arquivo `.env` (já presente na raiz)
+```dotenv
+APP_STATIC_TOKEN=authenticate-key
+SERVICE_A_URL=http://service-a:8081
+SERVICE_B_URL=http://service-b:8082
 ```
-Serviços:
+
+> ⚠️ Não coloque segredos reais aqui. Este `.env` é apenas para o desafio.
+
+---
+## 🚀 3) Subir os serviços
+```bash
+docker compose up -d --build
+```
+
+## 📖 4) Swagger
 - A: http://localhost:8081/swagger-ui.html
 - B: http://localhost:8082/swagger-ui.html
 - C: http://localhost:8083/swagger-ui.html
 
-DBs (Postgres 16):
-- db-a: localhost:5433 / db=servicea / user=app / pass=app
-- db-b: localhost:5434 / db=serviceb / user=app / pass=app
-- db-c: localhost:5435 / db=servicec / user=app / pass=app (nota: C lê B para CSV)
+Clique em **Authorize** e informe `Bearer authenticate-key`.
 
-## Endpoints Principais
-### Service A (localhost:8081)
-- `POST /usuarios`
-- `POST /entregadores`
-- `POST /pedidos`
-- `PUT /usuarios/{id}` etc.
-- `DELETE /usuarios/{id}` etc.
-> **Replicação:** Ao criar/alterar/excluir, o A replica automaticamente para o B com retry (`Spring Retry`).  
-> **Caso de teste 422:** após **3 POSTs de pedidos bem-sucedidos** no A, o **4º** dispara exceção controlada (HTTP 422) e reseta o contador.
+---
+## 🧩 5) Endpoints e exemplos cURL
 
-### Service B (localhost:8082)
-- CRUD equivalente (usuários e pedidos)
-- Endpoints internos `/replication/...` usados por A
+### 🔹 Service A (http://localhost:8081)
+Responsável por criar e replicar dados para o Service B.
 
-### Service C (localhost:8083)
-- `GET /export/pedidos` → CSV `text/csv` via **OpenCSV** lendo a base do **service-b**
-
-## Exemplos (curl)
-1) Criar usuário (A):
+#### 🧑‍💼 Usuários
 ```bash
-curl -s -X POST localhost:8081/usuarios -H "Content-Type: application/json" -d '{
-  "nome":"João", "email":"joao@mail.com"
-}'
+# Criar
+curl -X POST http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"Ana","email":"ana@example.com"}'
+
+# Listar
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8081/usuarios
+
+# Atualizar
+curl -X PUT http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"id":1,"name":"Ana Maria","email":"ana.maria@example.com"}'
+
+# Deletar
+curl -X DELETE http://localhost:8081/usuarios/1   -H "Authorization: Bearer authenticate-key"
 ```
-2) Criar entregador (A):
+
+#### 🚚 Entregadores
 ```bash
-curl -s -X POST localhost:8081/entregadores -H "Content-Type: application/json" -d '{
-  "nome":"Maria", "telefone":"119999999"
-}'
+# Criar
+curl -X POST http://localhost:8081/entregadores   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"Carlos","phone":"+55 71 99999-0000"}'
+
+# Listar
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8081/entregadores
+
+# Atualizar
+curl -X PUT http://localhost:8081/entregadores   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"id":1,"name":"Carlos Souza","phone":"+55 71 98888-0000"}'
+
+# Deletar
+curl -X DELETE http://localhost:8081/entregadores/1   -H "Authorization: Bearer authenticate-key"
 ```
-3) Criar pedido (A) - replica no B automaticamente:
+
+#### 📦 Pedidos
 ```bash
-curl -s -X POST localhost:8081/pedidos -H "Content-Type: application/json" -d '{
-  "descricao":"Pedido 1", "valor": 150.0, "idUsuario":1, "idEntregador":1
-}'
-```
-4) Forçar erro controlado no 4º POST de pedido (HTTP 422):
-- Faça 3 POSTs de pedidos com sucesso, o 4º retorna 422 e reseta o contador.
+# Criar
+curl -X POST http://localhost:8081/pedidos   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"description":"Pedido 1","value":123.45,"externalUserId":1,"idDelivery":1}'
 
-5) CSV (C):
+# Listar
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8081/pedidos
+
+# Atualizar
+curl -X PUT http://localhost:8081/pedidos   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"id":1,"description":"Pedido 1 atualizado","value":150.00,"externalUserId":1,"idDelivery":1}'
+
+# Deletar
+curl -X DELETE http://localhost:8081/pedidos/1   -H "Authorization: Bearer authenticate-key"
+```
+
+
+
+---
+### 🔹 Service C (http://localhost:8083)
+Exporta pedidos do Service B em formato CSV.
+
 ```bash
-curl -s localhost:8083/export/pedidos -o pedidos.csv
+curl -H "Authorization: Bearer authenticate-key"   -OJ http://localhost:8083/export/pedidos
+# Gera: pedidos-YYYYMMDD-HHmmss.csv
 ```
 
-## Observabilidade
-- Actuator: `/actuator/health`
-- Logs estruturados com MDC (requestId).
+---
+## 🧪 6) Caso de Teste 5.1 – Exceção 422 após 3 POSTs
+Após três criações bem-sucedidas em Service A, a próxima tentativa deve retornar **HTTP 422**.
 
-> Projeto alinhado ao PDF do desafio: entidades, interoperabilidade, retry, erro 422, CSV, Docker, README e testes manuais via curl. 
+**Objetivo:** validar o tratamento de erro entre A ↔ B.  
+**Pré-condições:** stack ativa e token configurado.
 
-
-## 🔐 Authentication (JWT)
-All services are protected with Bearer JWT. Set these envs (already present in `docker-compose.yml`):
-
-- `APP_JWT_SECRET`: HMAC secret (min 32 chars)
-- `APP_JWT_ISSUER`: token issuer (default `desafio`)
-- `APP_JWT_EXPIRATION_SECONDS`: expiration in seconds (default 3600)
-
-To mint a token quickly (Java code sample):
-```java
-var jwt = new JwtService(new JwtProperties("change_me_please_change_me_32chars","desafio",3600)).createToken("tester");
-System.out.println(jwt);
+```bash
+# 1
+curl -X POST http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"u1","email":"u1@example.com"}'
+# 2
+curl -X POST http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"u2","email":"u2@example.com"}'
+# 3
+curl -X POST http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"u3","email":"u3@example.com"}'
+# 4 → deve retornar 422
+curl -i -X POST http://localhost:8081/usuarios   -H "Authorization: Bearer authenticate-key"   -H "Content-Type: application/json"   -d '{"name":"u4","email":"u4@example.com"}'
 ```
-
-Use the token:
-```
-curl -H "Authorization: Bearer <token>" http://localhost:8081/users
-```
-
-## 🔁 Replication without loops
-Feign adds header `X-Replicated: true` on cross-service calls. A filter marks the request as replicated, and service layer only re-calls the peer when `!ReplicationContext.isReplicated()`.
-
-## 🐳 Multi-platform Docker
-- Multi-stage Dockerfiles (Maven + Temurin JRE 21)
-- `docker compose up --build` works on Linux / macOS / Windows (WSL2 recommended).
-

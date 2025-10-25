@@ -10,14 +10,24 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiError> handleCustom(CustomException ex, HttpServletRequest req) {
+    public ResponseEntity<?> handleCustom(CustomException ex, HttpServletRequest req) {
         HttpStatus status = ex.getStatus();
+
+        String message = ex.getMessage();
+        if (message != null) {
+            String trimmed = message.trim();
+            if ((trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+                    (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+                return ResponseEntity.status(status).body(trimmed);
+            }
+        }
+
         ApiError body = ApiError.of(
                 status.value(),
                 status.getReasonPhrase(),
                 ex.getMessage(),
                 req.getRequestURI(),
-                null
+                ex.getDetails()
         );
         return ResponseEntity.status(status).body(body);
     }

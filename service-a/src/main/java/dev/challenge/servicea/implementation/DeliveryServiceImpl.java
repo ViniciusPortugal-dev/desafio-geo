@@ -26,11 +26,15 @@ public class DeliveryServiceImpl implements DeliveryService {
     public DeliveryDTO createDelivery(DeliveryDTO dto) {
         log.info("Criando entregador... payload=name='{}'", safe(dto == null ? null : dto.name()));
         validateRequired(dto);
-        Delivery entity = DeliveryAdapter.toNewEntity(dto);
-        Delivery saved = deliveryRepository.save(entity);
-
-        log.info("Entregador criado com sucesso. id={}", saved.getId());
-        return DeliveryAdapter.toDeliveryDTO(saved);
+        try {
+            Delivery entity = DeliveryAdapter.toNewEntity(dto);
+            Delivery saved = deliveryRepository.save(entity);
+            log.info("Entregador criado com sucesso. id={}", saved.getId());
+            return DeliveryAdapter.toDeliveryDTO(saved);
+        } catch (Exception e) {
+            log.error("Erro ao criar entregador. payload={}", dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao criar entregador: " + e.getMessage());
+        }
     }
 
     @Override
@@ -44,11 +48,15 @@ public class DeliveryServiceImpl implements DeliveryService {
                     return new CustomException(HttpStatus.NOT_FOUND, "Entregador não encontrado (ID: " + id + ")");
                 });
 
-        DeliveryAdapter.updateEntityFromDto(dto, entity);
-        Delivery saved = deliveryRepository.save(entity);
-
-        log.info("Entregador atualizado com sucesso. id={}", saved.getId());
-        return DeliveryAdapter.toDeliveryDTO(saved);
+        try {
+            DeliveryAdapter.updateEntityFromDto(dto, entity);
+            Delivery saved = deliveryRepository.save(entity);
+            log.info("Entregador atualizado com sucesso. id={}", saved.getId());
+            return DeliveryAdapter.toDeliveryDTO(saved);
+        } catch (Exception e) {
+            log.error("Erro ao atualizar entregador. id={}, payload={}", id, dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao atualizar entregador: " + e.getMessage());
+        }
     }
 
     @Override
@@ -62,20 +70,38 @@ public class DeliveryServiceImpl implements DeliveryService {
             throw new CustomException(HttpStatus.NOT_FOUND, "Entregador não encontrado (ID: " + id + ")");
         }
 
-        deliveryRepository.deleteById(id);
-        log.info("Entregador removido com sucesso. id={}", id);
+        try {
+            deliveryRepository.deleteById(id);
+            log.info("Entregador removido com sucesso. id={}", id);
+        } catch (Exception e) {
+            log.error("Erro ao remover entregador. id={}", id, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao remover entregador: " + e.getMessage());
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<DeliveryDTO> listDeliveries() {
         log.info("Listando entregadores...");
-        List<DeliveryDTO> result = deliveryRepository.findAll()
-                .stream()
-                .map(DeliveryAdapter::toDeliveryDTO)
-                .toList();
-        log.info("Listagem concluída. total={}", result.size());
-        return result;
+        try {
+            List<DeliveryDTO> result = deliveryRepository.findAll()
+                    .stream()
+                    .map(DeliveryAdapter::toDeliveryDTO)
+                    .toList();
+
+            if (result.isEmpty()) {
+                log.warn("Nenhum entregador encontrado na listagem.");
+                throw new CustomException(HttpStatus.NO_CONTENT, "Nenhum entregador encontrado.");
+            }
+
+            log.info("Listagem concluída. total={}", result.size());
+            return result;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao listar entregadores.", e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao listar entregadores: " + e.getMessage());
+        }
     }
 
     private static void validateRequired(DeliveryDTO dto) {

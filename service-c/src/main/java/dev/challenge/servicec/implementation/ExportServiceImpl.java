@@ -43,8 +43,6 @@ public class ExportServiceImpl implements ExportService {
         }
     }
 
-    // ---------- helpers ----------
-
     private static String s(Object o) {
         if (o == null) return "";
         if (o instanceof String str) return str;

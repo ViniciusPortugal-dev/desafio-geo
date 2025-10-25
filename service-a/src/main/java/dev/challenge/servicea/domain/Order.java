@@ -31,4 +31,7 @@ public class Order {
 
     @Column(name = "external_id", nullable = false, unique = true, length = 50)
     private String externalId;
+
+    @Column(name = "external_user_id", nullable = false, length = 50)
+    private String externalUserId;
 }

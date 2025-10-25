@@ -23,8 +23,8 @@ springdoc:
 
 service:
   b:
-    url: ${SERVICE_B_URL:http://service-b:8082}
+    url: ${SERVICE_B_URL}
 
 app:
   auth:
-    static-token: ${APP_STATIC_TOKEN:change-me-super-secret}
+    static-token: ${APP_STATIC_TOKEN}

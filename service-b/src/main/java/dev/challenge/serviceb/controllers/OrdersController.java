@@ -43,7 +43,7 @@ public class OrdersController {
             @ApiResponse(responseCode = "409", description = "Conflito"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<OrderReplicaDTO> createOrder(@RequestBody @Valid OrderReplicaDTO dto) {
+    public ResponseEntity<OrderReplicaDTO> createOrder(@RequestBody OrderReplicaDTO dto) {
         return ResponseEntity.status(201).body(service.createOrder(dto));
     }
 
@@ -57,7 +57,7 @@ public class OrdersController {
             @ApiResponse(responseCode = "404", description = "Não encontrado"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<OrderReplicaDTO> updateOrder(@PathVariable("id") String id, @RequestBody @Valid OrderReplicaDTO dto) {
+    public ResponseEntity<OrderReplicaDTO> updateOrder(@PathVariable("id") String id, @RequestBody OrderReplicaDTO dto) {
         return ResponseEntity.ok(service.updateOrder(id, dto));
     }
 

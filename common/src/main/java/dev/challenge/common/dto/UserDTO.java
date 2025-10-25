@@ -5,4 +5,4 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 @Builder
-public record UserDTO(Long id, @NotBlank String name, @Email String email, String externalId) {}
+public record UserDTO(Long id, String name, String email, String externalId) {}

@@ -37,10 +37,8 @@ public class ReplicationFeignConfig {
         return (methodKey, response) -> {
             int status = response.status();
             if (status >= 400 && status < 500) {
-                // 422 entra aqui e NÃO será refeito pelo Retryer
                 return new RuntimeException("Erro de cliente " + status + " em " + methodKey);
             }
-            // 5xx cai no Retryer
             return new ErrorDecoder.Default().decode(methodKey, response);
         };
     }

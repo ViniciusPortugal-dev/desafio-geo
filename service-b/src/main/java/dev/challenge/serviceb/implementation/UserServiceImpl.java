@@ -29,73 +29,104 @@ public class UserServiceImpl implements UserService {
     public UserDTO createUser(UserDTO dto) {
         log.info("Criando usuário (Service B)... email='{}'", dto != null ? dto.email() : null);
         validate(dto);
-
-        User saved = userRepository.save(UserAdapter.toNewEntity(dto));
-        UserDTO out = UserAdapter.toUserDTO(saved);
-        log.info("Usuário criado. id={}, externalId={}", saved.getId(), saved.getExternalId());
-
-        if (!Replication.incoming()) {
-            replicateCreate(out);
+        try {
+            User saved = userRepository.save(UserAdapter.toNewEntity(dto));
+            UserDTO out = UserAdapter.toUserDTO(saved);
+            log.info("Usuário criado. id={}, externalId={}", saved.getId(), saved.getExternalId());
+            if (!Replication.incoming()) {
+                replicateCreate(out);
+            }
+            return out;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao criar usuário (Service B). payload={}", dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao criar usuário: " + e.getMessage());
         }
-
-        return out;
     }
 
     @Override
     @Transactional
     public UserDTO updateUser(String externalId, UserDTO dto) {
-        log.info("Atualizando usuário... externalId={}", externalId);
+        log.info("Atualizando usuário (Service B)... externalId={}", externalId);
+        validateExternalId(externalId);
         validate(dto);
 
         User found = userRepository.findByExternalId(externalId)
                 .orElseThrow(() -> {
-                    log.warn("Usuário não encontrado para update. externalId={}", externalId);
-                    return new CustomException(HttpStatus.NOT_FOUND,
-                            "Usuário não encontrado (ID: " + externalId + ")");
+                    log.warn("Usuário não encontrado para update (Service B). externalId={}", externalId);
+                    return new CustomException(HttpStatus.NOT_FOUND, "Usuário não encontrado (ID: " + externalId + ")");
                 });
 
-        UserAdapter.updateEntityFromDto(dto, found);
-        User saved = userRepository.save(found);
-        UserDTO out = UserAdapter.toUserDTO(saved);
+        try {
+            UserAdapter.updateEntityFromDto(dto, found);
+            User saved = userRepository.save(found);
+            UserDTO out = UserAdapter.toUserDTO(saved);
 
-        if (!Replication.incoming()) {
-            replicateUpdate(externalId, out);
+            if (!Replication.incoming()) {
+                replicateUpdate(externalId, out);
+            }
+
+            log.info("Usuário atualizado. externalId={}", externalId);
+            return out;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao atualizar usuário (Service B). externalId={}, payload={}", externalId, dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao atualizar usuário: " + e.getMessage());
         }
-
-        log.info("Usuário atualizado. externalId={}", externalId);
-        return out;
     }
 
     @Override
     @Transactional
     public void deleteUser(String externalId) {
-        log.info("Removendo usuário... externalId={}", externalId);
+        log.info("Removendo usuário (Service B)... externalId={}", externalId);
+        validateExternalId(externalId);
 
         boolean exists = userRepository.existsByExternalId(externalId);
         if (!exists) {
-            log.warn("Usuário não encontrado para remoção. externalId={}", externalId);
-            throw new CustomException(HttpStatus.NOT_FOUND,
-                    "Usuário não encontrado (ID: " + externalId + ")");
+            log.warn("Usuário não encontrado para remoção (Service B). externalId={}", externalId);
+            throw new CustomException(HttpStatus.NOT_FOUND, "Usuário não encontrado (ID: " + externalId + ")");
         }
 
-        userRepository.deleteByExternalId(externalId);
+        try {
+            userRepository.deleteByExternalId(externalId);
 
-        if (!Replication.incoming()) {
-            replicateDelete(externalId);
+            if (!Replication.incoming()) {
+                replicateDelete(externalId);
+            }
+
+            log.info("Usuário removido. externalId={}", externalId);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao remover usuário (Service B). externalId={}", externalId, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao remover usuário: " + e.getMessage());
         }
-
-        log.info("Usuário removido. externalId={}", externalId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDTO> listUsers() {
         log.info("Listando usuários (Service B)...");
-        List<UserDTO> list = userRepository.findAll().stream()
-                .map(UserAdapter::toUserDTO)
-                .toList();
-        log.info("Listagem concluída. total={}", list.size());
-        return list;
+        try {
+            List<UserDTO> list = userRepository.findAll().stream()
+                    .map(UserAdapter::toUserDTO)
+                    .toList();
+
+            if (list.isEmpty()) {
+                log.warn("Nenhum usuário encontrado na listagem (Service B).");
+                throw new CustomException(HttpStatus.NO_CONTENT, "Nenhum usuário encontrado.");
+            }
+
+            log.info("Listagem concluída. total={}", list.size());
+            return list;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao listar usuários (Service B).", e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao listar usuários: " + e.getMessage());
+        }
     }
 
     private void replicateCreate(UserDTO out) {
@@ -103,10 +134,8 @@ public class UserServiceImpl implements UserService {
             userAClient.createUser(out);
             log.info("Replicação create enviada ao Service A. externalId={}", out.externalId());
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (create) ao Service A. externalId={}, err={}",
-                    out.externalId(), e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY,
-                    "Falha ao replicar usuário para o Service A");
+            log.error("Falha ao replicar usuário (create) ao Service A. externalId={}, err={}", out.externalId(), e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar usuário para o Service A");
         }
     }
 
@@ -115,10 +144,8 @@ public class UserServiceImpl implements UserService {
             userAClient.updateUser(externalId, out);
             log.info("Replicação update enviada ao Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (update) ao Service A. externalId={}, err={}",
-                    externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY,
-                    "Falha ao replicar atualização de usuário para o Service A (ID: " + externalId + ")");
+            log.error("Falha ao replicar usuário (update) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar atualização de usuário para o Service A (ID: " + externalId + ")");
         }
     }
 
@@ -127,10 +154,8 @@ public class UserServiceImpl implements UserService {
             userAClient.deleteUser(externalId);
             log.info("Replicação delete enviada ao Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (delete) ao Service A. externalId={}, err={}",
-                    externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY,
-                    "Falha ao replicar exclusão de usuário para o Service A (ID: " + externalId + ")");
+            log.error("Falha ao replicar usuário (delete) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar exclusão de usuário para o Service A (ID: " + externalId + ")");
         }
     }
 
@@ -143,6 +168,12 @@ public class UserServiceImpl implements UserService {
         }
         if (isBlank(dto.email())) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'email' é obrigatório.");
+        }
+    }
+
+    private static void validateExternalId(String externalId) {
+        if (isBlank(externalId)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Parâmetro 'externalId' é obrigatório.");
         }
     }
 

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS entregador (
 CREATE TABLE IF NOT EXISTS pedido (
                                       id BIGSERIAL PRIMARY KEY,
                                       external_id VARCHAR(50) NOT NULL UNIQUE,
+    external_user_id VARCHAR(50) NOT NULL,
     descricao VARCHAR(255) NOT NULL,
     valor NUMERIC(14,2) NOT NULL,
     id_usuario BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,

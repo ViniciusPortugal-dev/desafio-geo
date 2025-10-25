@@ -4,6 +4,7 @@ import dev.challenge.common.dto.UserDTO;
 import dev.challenge.serviceb.domain.User;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public final class UserAdapter {
 
@@ -24,7 +25,7 @@ public final class UserAdapter {
         User e = new User();
         e.setName(safe(dto.name()));
         e.setEmail(safe(dto.email()));
-        e.setExternalId(dto.externalId()); // vem do A
+        e.setExternalId(dto.externalId() != null ? dto.externalId() : UUID.randomUUID().toString());
         return e;
     }
 

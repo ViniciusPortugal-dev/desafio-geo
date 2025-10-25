@@ -32,7 +32,7 @@ public class UsersController {
             @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<UserDTO> create(@RequestBody @Valid UserDTO dto) {
+    public ResponseEntity<UserDTO> create(@RequestBody UserDTO dto) {
         return ResponseEntity.status(201).body(service.createUser(dto));
     }
 
@@ -44,7 +44,7 @@ public class UsersController {
             @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content)
     })
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable("id") String id, @RequestBody @Valid UserDTO dto) {
+    public ResponseEntity<UserDTO> update(@PathVariable("id") String id, @RequestBody UserDTO dto) {
         return ResponseEntity.ok(service.updateUser(id, dto));
     }
 

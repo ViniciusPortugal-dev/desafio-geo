@@ -1,16 +1,23 @@
 package dev.challenge.common.error;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
 public class CustomException extends RuntimeException {
     private final HttpStatus status;
+    private final Object details;
 
     public CustomException(HttpStatus status, String message) {
         super(message);
         this.status = status;
+        this.details = null;
     }
 
-    public HttpStatus getStatus() {
-        return status;
+    public CustomException(HttpStatus status, String message, Object details) {
+        super(message);
+        this.status = status;
+        this.details = details;
     }
+
 }

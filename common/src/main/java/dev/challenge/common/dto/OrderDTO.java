@@ -5,9 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 import java.math.BigDecimal;
+
 @Builder
 public record OrderDTO(Long id,
-                       @NotBlank String description,
-                       @NotNull BigDecimal value,
-                       @NotNull Long idUser,
-                       @NotNull Long idDelivery) {}
+                       String description,
+                       BigDecimal value,
+                       Long idDelivery,
+                       String externalId,
+                       String externalUserId) {
+}

@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.retry.annotation.EnableRetry;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "dev.challenge")
 @EnableFeignClients
 @EnableRetry
 public class ServiceAApplication {

@@ -47,7 +47,7 @@ docker compose up -d --build
 
 Clique em **Authorize** e informe `Bearer authenticate-key`.
 
-> 💡 **No Swagger**, os endpoints de **atualização (PUT)** e **exclusão (DELETE)** de **Usuários** e **Pedidos** agora utilizam **`externalId` como *path variable*** no **Service A**.  
+> 💡 **No Swagger**, os endpoints de **atualização (PUT)** e **exclusão (DELETE)** de **Usuários** e **Pedidos** utilizam **`externalId` como *path variable*** no **Service A** (e, se aplicável, no **Service B**).  
 > 💡 Cole os **bodies prontos** (abaixo) diretamente no campo “Request body” do Swagger.
 
 ---
@@ -79,7 +79,7 @@ Clique em **Authorize** e informe `Bearer authenticate-key`.
   "phone": "+55 71 99999-0000"
 }
 ```
-- **PUT /entregadores/{id}** 
+- **PUT /entregadores/{id}**
 ```json
 {
   "name": "Carlos Souza",
@@ -106,12 +106,13 @@ Clique em **Authorize** e informe `Bearer authenticate-key`.
   "idDelivery": 1
 }
 ```
+> ℹ️ **Observação importante:** o campo `externalUserId` utilizado nos bodies de criação e atualização de pedidos corresponde ao **`externalId` retornado na criação do Usuário**. Ou seja, para atualizar ou criar um pedido vinculado, utilize o `externalId` do usuário como `externalUserId`.
 
 
+### 🔹 Service C (`http://localhost:8083`)
 
-```
-
-```
+#### 📤 Exportar pedidos (GET)
+- **GET /export/pedidos** *(sem body — apenas clique em Execute)*
 
 ---
 ## 🧩 7) cURLs (Bash e PowerShell)
@@ -196,7 +197,7 @@ curl.exe -X POST "http://localhost:8081/entregadores" ^
   -d '{ "name":"Carlos", "phone":"+55 71 99999-0000" }'
 ```
 
-**Atualizar (PUT /entregadores/{id ou externalId})** *(ajuste conforme seu contrato)*  
+**Atualizar (PUT /entregadores/{id})**  
 **Bash**
 ```bash
 curl -X PUT "http://localhost:8081/entregadores/1" \
@@ -223,7 +224,7 @@ curl.exe "http://localhost:8081/entregadores" ^
   -H "Authorization: Bearer authenticate-key"
 ```
 
-**Deletar (DELETE /entregadores/{id ou externalId})** *(se aplicável)*  
+**Deletar (DELETE /entregadores/{id})**  
 **Bash**
 ```bash
 curl -X DELETE "http://localhost:8081/entregadores/1" \
@@ -310,45 +311,23 @@ curl.exe "http://localhost:8082/pedidos" ^
   -H "Authorization: Bearer authenticate-key"
 ```
 
-**Atualizar replicados (PUT /{externalId})**  
+
+
+---
+### 🔹 Service C (`http://localhost:8083`)
+
+**Exportar pedidos (GET /export/pedidos)** *(sem body)*  
 **Bash**
 ```bash
-curl -X PUT "http://localhost:8082/usuarios/<EXTERNAL_ID>" \
-  -H "Authorization: Bearer authenticate-key" \
-  -H "Content-Type: application/json" \
-  -d '{ "name":"Ana Maria", "email":"ana.maria@example.com" }'
-
-curl -X PUT "http://localhost:8082/pedidos/<EXTERNAL_ID>" \
-  -H "Authorization: Bearer authenticate-key" \
-  -H "Content-Type: application/json" \
-  -d '{ "description":"Pedido 1 atualizado", "value":150.0, "externalUserId":1, "idDelivery":1 }'
+curl -OJ "http://localhost:8083/export/pedidos" \
+  -H "Authorization: Bearer authenticate-key"
 ```
 **PowerShell**
 ```powershell
-curl.exe -X PUT "http://localhost:8082/usuarios/<EXTERNAL_ID>" ^
-  -H "Authorization: Bearer authenticate-key" ^
-  -H "Content-Type: application/json" ^
-  -d '{ "name":"Ana Maria", "email":"ana.maria@example.com" }'
-
-curl.exe -X PUT "http://localhost:8082/pedidos/<EXTERNAL_ID>" ^
-  -H "Authorization: Bearer authenticate-key" ^
-  -H "Content-Type: application/json" ^
-  -d '{ "description":"Pedido 1 atualizado", "value":150.0, "externalUserId":1, "idDelivery":1 }'
-```
-
-**Deletar replicados (DELETE /{externalId})**  
-**Bash**
-```bash
-curl -X DELETE "http://localhost:8082/usuarios/<EXTERNAL_ID>" -H "Authorization: Bearer authenticate-key"
-curl -X DELETE "http://localhost:8082/pedidos/<EXTERNAL_ID>"  -H "Authorization: Bearer authenticate-key"
-```
-**PowerShell**
-```powershell
-curl.exe -X DELETE "http://localhost:8082/usuarios/<EXTERNAL_ID>" ^
-  -H "Authorization: Bearer authenticate-key"
-curl.exe -X DELETE "http://localhost:8082/pedidos/<EXTERNAL_ID>" ^
+curl.exe -OJ "http://localhost:8083/export/pedidos" ^
   -H "Authorization: Bearer authenticate-key"
 ```
+> O `-O` salva com o nome sugerido pelo servidor e o `-J` permite usar o header `Content-Disposition` para o nome do arquivo (ex.: `pedidos-YYYYMMDD-HHmmss.csv`).
 
 ---
 ## 🧪 8) Caso de Teste 5.1 – Exceção 422 após 3 POSTs

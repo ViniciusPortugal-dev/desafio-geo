@@ -1,4 +1,3 @@
-// service-a
 package dev.challenge.servicea.adapters;
 
 import dev.challenge.common.dto.OrderDTO;
@@ -7,7 +6,6 @@ import dev.challenge.servicea.domain.Delivery;
 import dev.challenge.servicea.domain.Order;
 import dev.challenge.servicea.domain.User;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public final class OrderAdapter {
@@ -26,27 +24,26 @@ public final class OrderAdapter {
     }
 
     public static Order toNewEntity(OrderDTO dto, User user, Delivery delivery) {
-        Objects.requireNonNull(dto, "OrderDTO não pode ser nulo");
-        Order e = new Order();
-        e.setExternalId(UUID.randomUUID().toString());
-        updateMutableFields(dto, e, user, delivery);
-        return e;
+        Order order = Order.builder()
+                .externalId(UUID.randomUUID().toString())
+                .build();
+        updateMutableFields(dto, order, user, delivery);
+        return order;
     }
 
 
 
-    public static void updateEntityFromDto(OrderDTO dto, Order e, User user, Delivery delivery) {
-        Objects.requireNonNull(e, "Order entity não pode ser nula");
-        if (dto == null) return;
-        updateMutableFields(dto, e, user, delivery);
+
+    public static void updateEntityFromDto(OrderDTO dto, Order order, User user, Delivery delivery) {
+        updateMutableFields(dto, order, user, delivery);
     }
 
-    private static void updateMutableFields(OrderDTO dto, Order e, User user, Delivery delivery) {
-        e.setDescription(dto.description());
-        e.setValue(dto.value());
-        e.setIdUser(user.getId());
-        e.setIdDelivery(delivery.getId());
-        e.setExternalUserId(user.getExternalId());
+    private static void updateMutableFields(OrderDTO dto, Order order, User user, Delivery delivery) {
+        order.setDescription(dto.description());
+        order.setValue(dto.value());
+        order.setIdUser(user.getId());
+        order.setIdDelivery(delivery.getId());
+        order.setExternalUserId(user.getExternalId());
     }
 
     public static OrderReplicaDTO toReplica(Order order, Delivery delivery, User user) {
@@ -55,8 +52,8 @@ public final class OrderAdapter {
                 order.getDescription(),
                 order.getValue(),
                 order.getExternalId(),
-                delivery != null ? delivery.getName() : null,
-                delivery != null ? delivery.getPhone() : null,
+                delivery.getName(),
+                delivery.getPhone() ,
                 user.getExternalId()
         );
     }

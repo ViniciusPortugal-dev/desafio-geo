@@ -5,4 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 @Builder
-public record UserDTO(Long id, String name, String email, String externalId) {}
+public record UserDTO(Long id,
+                      @NotBlank(message = "name is required") String name,
+                      @NotBlank(message = "email is required")
+                      @Email(message = "email must be valid")
+                      String email,
+                      String externalId) {}

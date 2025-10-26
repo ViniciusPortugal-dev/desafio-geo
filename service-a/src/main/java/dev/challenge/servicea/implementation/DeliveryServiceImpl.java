@@ -16,6 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class DeliveryServiceImpl implements DeliveryService {
 
@@ -24,103 +25,77 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional
     public DeliveryDTO createDelivery(DeliveryDTO dto) {
-        log.info("Criando entregador... payload=name='{}'", safe(dto == null ? null : dto.name()));
-        validateRequired(dto);
+        log.info("Creating delivery... name='{}'", dto.name());
         try {
-            Delivery entity = DeliveryAdapter.toNewEntity(dto);
-            Delivery saved = deliveryRepository.save(entity);
-            log.info("Entregador criado com sucesso. id={}", saved.getId());
+            Delivery saved = deliveryRepository.save(DeliveryAdapter.toNewEntity(dto));
+            log.info("Delivery created. id={}", saved.getId());
             return DeliveryAdapter.toDeliveryDTO(saved);
         } catch (Exception e) {
-            log.error("Erro ao criar entregador. payload={}", dto, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao criar entregador: " + e.getMessage());
+            log.error("Error creating delivery. payload=name='{}'", dto.name(), e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error creating delivery");
         }
     }
 
     @Override
     @Transactional
     public DeliveryDTO updateDelivery(Long id, DeliveryDTO dto) {
-        log.info("Atualizando entregador... id={}, payload=name='{}'", id, safe(dto == null ? null : dto.name()));
-        validateRequired(dto);
+        log.info("Updating delivery... id={}, name='{}'", id, dto.name());
+
         Delivery entity = deliveryRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.warn("Entregador não encontrado para update. id={}", id);
-                    return new CustomException(HttpStatus.NOT_FOUND, "Entregador não encontrado (ID: " + id + ")");
-                });
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Delivery not found (ID: " + id + ")"));
 
         try {
             DeliveryAdapter.updateEntityFromDto(dto, entity);
             Delivery saved = deliveryRepository.save(entity);
-            log.info("Entregador atualizado com sucesso. id={}", saved.getId());
+            log.info("Delivery updated. id={}", saved.getId());
             return DeliveryAdapter.toDeliveryDTO(saved);
         } catch (Exception e) {
-            log.error("Erro ao atualizar entregador. id={}, payload={}", id, dto, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao atualizar entregador: " + e.getMessage());
+            log.error("Error updating delivery. id={}", id, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating delivery");
         }
     }
 
     @Override
     @Transactional
     public void deleteDelivery(Long id) {
-        log.info("Removendo entregador... id={}", id);
-
-        boolean exists = deliveryRepository.existsById(id);
-        if (!exists) {
-            log.warn("Entregador não encontrado para remoção. id={}", id);
-            throw new CustomException(HttpStatus.NOT_FOUND, "Entregador não encontrado (ID: " + id + ")");
+        log.info("Deleting delivery... id={}", id);
+        if (!deliveryRepository.existsById(id)) {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Delivery not found (ID: " + id + ")");
         }
 
         try {
             deliveryRepository.deleteById(id);
-            log.info("Entregador removido com sucesso. id={}", id);
+            log.info("Delivery deleted. id={}", id);
         } catch (Exception e) {
-            log.error("Erro ao remover entregador. id={}", id, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao remover entregador: " + e.getMessage());
+            log.error("Error deleting delivery. id={}", id, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting delivery");
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<DeliveryDTO> listDeliveries() {
-        log.info("Listando entregadores...");
+        log.info("Listing deliveries...");
+        List<DeliveryDTO> result;
         try {
-            List<DeliveryDTO> result = deliveryRepository.findAll()
+            result = deliveryRepository.findAll()
                     .stream()
                     .map(DeliveryAdapter::toDeliveryDTO)
                     .toList();
-
             if (result.isEmpty()) {
-                log.warn("Nenhum entregador encontrado na listagem.");
-                throw new CustomException(HttpStatus.NO_CONTENT, "Nenhum entregador encontrado.");
+                log.warn("No deliveries found.");
+                throw new CustomException(HttpStatus.NO_CONTENT, "No deliveries found.");
             }
-
-            log.info("Listagem concluída. total={}", result.size());
+            log.info("Listing completed. total={}", result.size());
             return result;
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Erro ao listar entregadores.", e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao listar entregadores: " + e.getMessage());
+            log.error("Error listing deliveries.", e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error listing deliveries");
         }
     }
 
-    private static void validateRequired(DeliveryDTO dto) {
-        if (dto == null) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Payload obrigatório ausente.");
-        }
-        if (isBlank(dto.name())) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'name' é obrigatório.");
-        }
-        if (isBlank(dto.phone())) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'phone' é obrigatório.");
-        }
-    }
-
-    private static String safe(String s) {
-        return s == null ? null : s.trim();
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
 }
+
+

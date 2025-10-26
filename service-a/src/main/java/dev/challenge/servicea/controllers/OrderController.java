@@ -2,14 +2,14 @@ package dev.challenge.servicea.controllers;
 
 import dev.challenge.common.dto.OrderDTO;
 import dev.challenge.servicea.services.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.*;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class OrderController {
             @ApiResponse(responseCode = "409", description = "Conflito"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<OrderDTO> createOrder(@RequestBody OrderDTO dto) {
+    public ResponseEntity<OrderDTO> createOrder(@RequestBody @Valid OrderDTO dto) {
         return ResponseEntity.status(201).body(service.createOrder(dto));
     }
 
@@ -45,7 +45,7 @@ public class OrderController {
             @ApiResponse(responseCode = "404", description = "Não encontrado"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<OrderDTO> updateOrder(@PathVariable("id") String id, @RequestBody OrderDTO dto) {
+    public ResponseEntity<OrderDTO> updateOrder(@PathVariable("id") String id, @RequestBody @Valid OrderDTO dto) {
         return ResponseEntity.ok(service.updateOrder(id, dto));
     }
 

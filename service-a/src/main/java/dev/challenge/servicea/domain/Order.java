@@ -2,6 +2,7 @@ package dev.challenge.servicea.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 
 @Entity

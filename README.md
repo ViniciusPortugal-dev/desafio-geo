@@ -26,6 +26,37 @@ SERVICE_B_URL=http://service-b:8082
 docker compose up -d --build
 ```
 
+## 🧪 Fluxo de Teste e Execução
+
+```
+
+Antes de testar os endpoints, siga esta sequência de operações para garantir que todas as dependências entre os serviços funcionem corretamente:
+
+Crie usuários no Service A.
+
+Crie entregadores no Service A.
+
+Crie pedidos, utilizando:
+
+O campo idDelivery com o ID do entregador criado.
+
+O campo externalUserId com o externalId retornado ao criar o usuário.
+
+Após criar os pedidos, você pode:
+
+Adicionar novos registros;
+
+Atualizar, apagar e listar dados;
+
+Verificar a replicação automática desses dados no Service B;
+
+Exportar os pedidos em CSV pelo Service C.
+
+Todos os exemplos abaixo seguem esse fluxo e mostram como testar os endpoints corretamente.
+
+```
+
+
 ## 📖 4) Swagger
 - A: http://localhost:8081/swagger-ui.html
 - B: http://localhost:8082/swagger-ui.html
@@ -85,6 +116,16 @@ curl -X DELETE http://localhost:8081/pedidos/1   -H "Authorization: Bearer authe
 ```
 
 
+### 🔹 Service B (http://localhost:8082)
+Endpoints para consultar dados replicados na base do service B
+```bash
+
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8082/usuarios
+
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8082/entregadores
+
+curl -H "Authorization: Bearer authenticate-key" http://localhost:8082/pedidos
+```
 
 ---
 ### 🔹 Service C (http://localhost:8083)

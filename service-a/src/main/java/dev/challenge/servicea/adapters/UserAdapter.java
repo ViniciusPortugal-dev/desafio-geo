@@ -3,40 +3,33 @@ package dev.challenge.servicea.adapters;
 import dev.challenge.common.dto.UserDTO;
 import dev.challenge.servicea.domain.User;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public final class UserAdapter {
 
     private UserAdapter() {}
 
-    public static UserDTO toUserDTO(User e) {
-        if (e == null) return null;
+    public static UserDTO toUserDTO(User user) {
         return UserDTO.builder()
-                .id(e.getId())
-                .name(e.getName())
-                .email(e.getEmail())
-                .externalId(e.getExternalId())
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .externalId(user.getExternalId())
                 .build();
     }
 
     public static User toNewEntity(UserDTO dto) {
-        Objects.requireNonNull(dto, "UserDTO não pode ser nulo");
-        User e = new User();
-        e.setName(safe(dto.name()));
-        e.setEmail(safe(dto.email()));
-        e.setExternalId(dto.externalId() != null ? dto.externalId() : UUID.randomUUID().toString());
-        return e;
+        return User.builder()
+                .name(dto.name())
+                .email(dto.email())
+                .externalId(dto.externalId() != null ? dto.externalId() : UUID.randomUUID().toString())
+                .build();
     }
+
 
     public static void updateEntityFromDto(UserDTO dto, User entity) {
-        Objects.requireNonNull(entity, "User entity não pode ser nulo");
-        if (dto == null) return;
-        entity.setName(safe(dto.name()));
-        entity.setEmail(safe(dto.email()));
+        entity.setName(dto.name());
+        entity.setEmail(dto.email());
     }
 
-    private static String safe(String s) {
-        return s == null ? null : s.trim();
-    }
 }

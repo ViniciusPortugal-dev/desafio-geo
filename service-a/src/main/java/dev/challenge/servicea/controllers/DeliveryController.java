@@ -2,14 +2,14 @@ package dev.challenge.servicea.controllers;
 
 import dev.challenge.common.dto.DeliveryDTO;
 import dev.challenge.servicea.services.DeliveryService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.*;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class DeliveryController {
             @ApiResponse(responseCode = "409", description = "Conflito"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<DeliveryDTO> createDelivery(@RequestBody DeliveryDTO dto) {
+    public ResponseEntity<DeliveryDTO> createDelivery(@RequestBody @Valid DeliveryDTO dto) {
         return ResponseEntity.status(201).body(service.createDelivery(dto));
     }
 
@@ -45,7 +45,7 @@ public class DeliveryController {
             @ApiResponse(responseCode = "404", description = "Não encontrado"),
             @ApiResponse(responseCode = "500", description = "Erro interno")
     })
-    public ResponseEntity<DeliveryDTO> updateDelivery(@PathVariable("id") Long id, @RequestBody DeliveryDTO dto) {
+    public ResponseEntity<DeliveryDTO> updateDelivery(@PathVariable("id") Long id, @Valid @RequestBody DeliveryDTO dto) {
         return ResponseEntity.ok(service.updateDelivery(id, dto));
     }
 

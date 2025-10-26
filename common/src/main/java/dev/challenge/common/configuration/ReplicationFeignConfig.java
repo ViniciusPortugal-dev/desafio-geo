@@ -2,13 +2,15 @@ package dev.challenge.common.configuration;
 
 import dev.challenge.common.replication.ReplicationFlagFilter;
 import dev.challenge.common.security.AuthProperties;
+import feign.Request;
 import feign.RequestInterceptor;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 
-
+@Configuration
 public class ReplicationFeignConfig {
 
     private final String token;
@@ -28,6 +30,14 @@ public class ReplicationFeignConfig {
     }
 
     @Bean
+    public Request.Options feignRequestOptions() {
+        return new Request.Options(
+                10_000,
+                60_000
+        );
+    }
+
+    @Bean
     public Retryer feignRetryer() {
         return new Retryer.Default(200, 2000, 3);
     }
@@ -37,7 +47,7 @@ public class ReplicationFeignConfig {
         return (methodKey, response) -> {
             int status = response.status();
             if (status >= 400 && status < 500) {
-                return new RuntimeException("Erro de cliente " + status + " em " + methodKey);
+                return new RuntimeException("Client error " + status + " at " + methodKey);
             }
             return new ErrorDecoder.Default().decode(methodKey, response);
         };

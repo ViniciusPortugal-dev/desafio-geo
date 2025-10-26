@@ -14,10 +14,4 @@ public class CustomException extends RuntimeException {
         this.details = null;
     }
 
-    public CustomException(HttpStatus status, String message, Object details) {
-        super(message);
-        this.status = status;
-        this.details = details;
-    }
-
 }

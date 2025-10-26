@@ -25,34 +25,32 @@ public class UsersController {
 
     @Operation(summary = "Cria um novo usuário", description = "Cadastra um novo usuário no sistema.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso",
-                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content)
+            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+            @ApiResponse(responseCode = "401", description = "Não autorizado"),
+            @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
     })
     @PostMapping
-    public ResponseEntity<UserDTO> create(@RequestBody UserDTO dto) {
+    public ResponseEntity<UserDTO> create(@RequestBody @Valid UserDTO dto) {
         return ResponseEntity.status(201).body(service.createUser(dto));
     }
 
     @Operation(summary = "Atualiza um usuário", description = "Atualiza os dados de um usuário existente.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso",
-                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "401", description = "Não autorizado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable("id") String id, @RequestBody UserDTO dto) {
+    public ResponseEntity<UserDTO> update(@PathVariable("id") String id, @RequestBody @Valid UserDTO dto) {
         return ResponseEntity.ok(service.updateUser(id, dto));
     }
 
     @Operation(summary = "Remove um usuário", description = "Exclui um usuário existente pelo ID.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Usuário removido com sucesso", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "204", description = "Usuário removido com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "401", description = "Não autorizado")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") String id) {
@@ -62,9 +60,8 @@ public class UsersController {
 
     @Operation(summary = "Lista usuários", description = "Retorna todos os usuários cadastrados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
-                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autorizado")
     })
     @GetMapping
     public ResponseEntity<List<UserDTO>> list() {

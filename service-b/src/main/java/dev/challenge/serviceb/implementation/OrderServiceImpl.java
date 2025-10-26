@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -30,79 +31,91 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderReplicaDTO> listOrders() {
-        log.info("Listando pedidos (Service B)...");
+        log.info("Listing orders (Service B)...");
         try {
-            List<OrderReplicaDTO> list = orderRepository.findAll()
+            List<OrderReplicaDTO> result = orderRepository.findAll()
                     .stream()
-                    .map(o -> {
-                        User u = userRepository.findById(o.getIdUser()).orElse(null);
-                        return OrderAdapter.toOrderDTO(o, u);
+                    .map(orderEntity -> {
+                        String externalUserId = Objects.requireNonNull(userRepository.findById(orderEntity.getIdUser()).orElse(null)).getExternalId();
+                        return OrderAdapter.toOrderDTO(orderEntity, externalUserId);
                     })
                     .toList();
 
-            if (list.isEmpty()) {
-                log.warn("Nenhum pedido encontrado na listagem (Service B).");
-                throw new CustomException(HttpStatus.NO_CONTENT, "Nenhum pedido encontrado.");
+            if (result.isEmpty()) {
+                log.warn("No orders found (Service B).");
+                throw new CustomException(HttpStatus.NO_CONTENT, "No orders found.");
             }
 
-            log.info("Listagem concluída. total={}", list.size());
-            return list;
-        } catch (CustomException e) {
-            throw e;
+            log.info("Listing completed. total={}", result.size());
+            return result;
         } catch (Exception e) {
-            log.error("Erro ao listar pedidos (Service B).", e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao listar pedidos: " + e.getMessage());
+            log.error("Error listing orders (Service B).", e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error listing orders");
         }
     }
-
 
     private User requireUserByExternalId(String userExternalId) {
         return userRepository.findByExternalId(userExternalId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
-                        "Usuário não encontrado (externalId: " + userExternalId + ")"));
+                        "User not found (externalId: " + userExternalId + ")"));
     }
-
 
     @Override
     @Transactional
-    public OrderReplicaDTO createOrder(OrderReplicaDTO dto) {
-        User user = requireUserByExternalId(dto.externalUserId());
-        Order saved = orderRepository.save(OrderAdapter.toNewEntity(dto, user));
-        OrderReplicaDTO out = OrderAdapter.toOrderDTO(saved, user);
-        if (!Replication.incoming()) {
-            replicateCreate(out);
+    public OrderReplicaDTO createOrder(OrderReplicaDTO orderDTO) {
+        User userEntity = requireUserByExternalId(orderDTO.externalUserId());
+
+        log.info("Creating order (Service B)... externalUserId={}", orderDTO.externalUserId());
+        try {
+            Order savedEntity = orderRepository.save(OrderAdapter.toNewEntity(orderDTO, userEntity));
+            OrderReplicaDTO out = OrderAdapter.toOrderDTO(savedEntity, userEntity.getExternalId());
+
+            if (!Replication.incoming()) {
+                replicateCreate(out);
+            }
+
+            log.info("Order created (Service B). externalId={}", savedEntity.getExternalId());
+            return out;
+        } catch (Exception e) {
+            log.error("Error creating order (Service B). payload={}", orderDTO, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error creating order");
         }
-        return out;
     }
-
 
     @Override
     @Transactional
-    public OrderReplicaDTO updateOrder(String externalId, OrderReplicaDTO dto) {
-        validateExternalId(externalId);
-        validate(dto);
+    public OrderReplicaDTO updateOrder(String externalId, OrderReplicaDTO orderDTO) {
+        User userEntity = requireUserByExternalId(orderDTO.externalUserId());
+        Order foundEntity = orderRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
+                        "Order not found (externalId: " + externalId + ")"));
 
-        User user = requireUserByExternalId(dto.externalUserId());
-        Order found = orderRepository.findByExternalId(externalId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Pedido não encontrado (ID: " + externalId + ")"));
-        Order saved = orderRepository.save(OrderAdapter.updateEntityFromDto(dto, found, user));
-        OrderReplicaDTO out = OrderAdapter.toOrderDTO(saved, user);
-        if (!Replication.incoming()) replicateUpdate(externalId, out);
-        return out;
+        log.info("Updating order (Service B)... externalId={}", externalId);
+        try {
+            Order updatedEntity = OrderAdapter.updateEntityFromDto(orderDTO, foundEntity, userEntity);
+            Order savedEntity = orderRepository.save(updatedEntity);
+
+            OrderReplicaDTO out = OrderAdapter.toOrderDTO(savedEntity, userEntity.getExternalId());
+            if (!Replication.incoming()) {
+                replicateUpdate(externalId, out);
+            }
+
+            log.info("Order updated (Service B). externalId={}", savedEntity.getExternalId());
+            return out;
+        } catch (Exception e) {
+            log.error("Error updating order (Service B). externalId={}", externalId, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating order");
+        }
     }
-
-
 
     @Override
     @Transactional
     public void deleteOrder(String externalId) {
-        log.info("Removendo pedido (Service B)... externalId={}", externalId);
-        validateExternalId(externalId);
-
+        log.info("Deleting order (Service B)... externalId={}", externalId);
         boolean exists = orderRepository.existsByExternalId(externalId);
         if (!exists) {
-            log.warn("Pedido não encontrado para remoção (Service B). externalId={}", externalId);
-            throw new CustomException(HttpStatus.NOT_FOUND, "Pedido não encontrado (ID: " + externalId + ")");
+            log.warn("Order not found for deletion (Service B). externalId={}", externalId);
+            throw new CustomException(HttpStatus.NOT_FOUND, "Order not found (externalId: " + externalId + ")");
         }
 
         try {
@@ -112,60 +125,46 @@ public class OrderServiceImpl implements OrderService {
                 replicateDelete(externalId);
             }
 
-            log.info("Pedido removido. externalId={}", externalId);
-        } catch (CustomException e) {
-            throw e;
+            log.info("Order deleted (Service B). externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Erro ao remover pedido (Service B). externalId={}", externalId, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao remover pedido: " + e.getMessage());
+            log.error("Error deleting order (Service B). externalId={}", externalId, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting order");
         }
     }
 
     private void replicateCreate(OrderReplicaDTO out) {
         try {
             orderAClient.createOrder(out);
-            log.info("Replicação create enviada ao Service A. externalId={}", out.externalId());
+            log.info("Create replication sent to Service A. externalId={}", out.externalId());
         } catch (Exception e) {
-            log.error("Falha ao replicar pedido (create) ao Service A. externalId={}, err={}", out.externalId(), e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar pedido para o Service A");
+            log.error("Failed to replicate order (create) to Service A. externalId={}, err={}",
+                    out.externalId(), e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "Failed to replicate order to Service A");
         }
     }
 
     private void replicateUpdate(String externalId, OrderReplicaDTO out) {
         try {
             orderAClient.updateOrder(externalId, out);
-            log.info("Replicação update enviada ao Service A. externalId={}", externalId);
+            log.info("Update replication sent to Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar pedido (update) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar atualização de pedido para o Service A (ID: " + externalId + ")");
+            log.error("Failed to replicate order (update) to Service A. externalId={}, err={}",
+                    externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY,
+                    "Failed to replicate order update to Service A (externalId: " + externalId + ")");
         }
     }
 
     private void replicateDelete(String externalId) {
         try {
             orderAClient.deleteOrder(externalId);
-            log.info("Replicação delete enviada ao Service A. externalId={}", externalId);
+            log.info("Delete replication sent to Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar pedido (delete) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar exclusão de pedido para o Service A (ID: " + externalId + ")");
+            log.error("Failed to replicate order (delete) to Service A. externalId={}, err={}",
+                    externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY,
+                    "Failed to replicate order deletion to Service A (externalId: " + externalId + ")");
         }
     }
 
-    private static void validate(OrderReplicaDTO dto) {
-        if (dto == null) throw new CustomException(HttpStatus.BAD_REQUEST, "Payload obrigatório ausente.");
-        if (isBlank(dto.description())) throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'description' é obrigatório.");
-        if (dto.value() == null) throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'value' é obrigatório.");
-        if (isBlank(dto.externalUserId())) throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'userExternalId' é obrigatório.");
-    }
-
-
-    private static void validateExternalId(String externalId) {
-        if (isBlank(externalId)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Parâmetro 'externalId' é obrigatório.");
-        }
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
 }

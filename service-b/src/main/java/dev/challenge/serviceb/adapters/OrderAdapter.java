@@ -11,39 +11,44 @@ public final class OrderAdapter {
 
     private OrderAdapter() {}
 
-    public static OrderReplicaDTO toOrderDTO(Order e, User user) {
-        if (e == null) return null;
+    public static OrderReplicaDTO toOrderDTO(Order orderEntity, String externalUserId) {
         return new OrderReplicaDTO(
-                e.getId(),
-                e.getDescription(),
-                e.getValue(),
-                e.getExternalId(),
-                e.getDeliveryName(),
-                e.getPhoneDelivery(),
-                user.getExternalId()
+                orderEntity.getId(),
+                orderEntity.getDescription(),
+                orderEntity.getValue(),
+                orderEntity.getExternalId(),
+                orderEntity.getDeliveryName(),
+                orderEntity.getPhoneDelivery(),
+                externalUserId
         );
     }
 
-    public static Order toNewEntity(OrderReplicaDTO dto, User user) {
-        Objects.requireNonNull(dto, "OrderReplicaDTO não pode ser nulo");
-        Order e = new Order();
-        e.setExternalId(dto.externalId() != null ? dto.externalId() : UUID.randomUUID().toString());
-        updateMutableFields(dto, e, user);
-        return e;
+    public static Order toNewEntity(OrderReplicaDTO orderReplicaDTO, User userEntity) {
+        Objects.requireNonNull(orderReplicaDTO, "OrderReplicaDTO must not be null");
+        return Order.builder()
+                .externalId(orderReplicaDTO.externalId() != null
+                        ? orderReplicaDTO.externalId()
+                        : UUID.randomUUID().toString())
+                .description(orderReplicaDTO.description())
+                .value(orderReplicaDTO.value())
+                .idUser(userEntity.getId())
+                .deliveryName(orderReplicaDTO.deliveryName())
+                .phoneDelivery(orderReplicaDTO.deliveryPhone())
+                .externalUserId(userEntity.getExternalId())
+                .build();
     }
 
-    public static Order updateEntityFromDto(OrderReplicaDTO dto, Order e, User user) {
-        Objects.requireNonNull(e, "Order entity não pode ser nula");
-        return updateMutableFields(dto, e, user);
+    public static Order updateEntityFromDto(OrderReplicaDTO orderReplicaDTO, Order orderEntity, User userEntity) {
+        return updateMutableFields(orderReplicaDTO, orderEntity, userEntity);
     }
 
-    private static Order updateMutableFields(OrderReplicaDTO dto, Order e, User user) {
-        e.setDescription(dto.description());
-        e.setValue(dto.value());
-        e.setIdUser(user.getId());
-        e.setDeliveryName(dto.deliveryName());
-        e.setPhoneDelivery(dto.deliveryPhone());
-        e.setExternalUserId(user.getExternalId());
-        return e;
+    private static Order updateMutableFields(OrderReplicaDTO orderReplicaDTO, Order orderEntity, User userEntity) {
+        orderEntity.setDescription(orderReplicaDTO.description());
+        orderEntity.setValue(orderReplicaDTO.value());
+        orderEntity.setIdUser(userEntity.getId());
+        orderEntity.setDeliveryName(orderReplicaDTO.deliveryName());
+        orderEntity.setPhoneDelivery(orderReplicaDTO.deliveryPhone());
+        orderEntity.setExternalUserId(userEntity.getExternalId());
+        return orderEntity;
     }
 }

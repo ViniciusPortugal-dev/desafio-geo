@@ -3,40 +3,36 @@ package dev.challenge.serviceb.adapters;
 import dev.challenge.common.dto.UserDTO;
 import dev.challenge.serviceb.domain.User;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public final class UserAdapter {
 
-    private UserAdapter() {}
+    private UserAdapter() {
+    }
 
-    public static UserDTO toUserDTO(User e) {
-        if (e == null) return null;
+    public static UserDTO toUserDTO(User userEntity) {
         return UserDTO.builder()
-                .id(e.getId())
-                .name(e.getName())
-                .email(e.getEmail())
-                .externalId(e.getExternalId())
+                .id(userEntity.getId())
+                .name(userEntity.getName())
+                .email(userEntity.getEmail())
+                .externalId(userEntity.getExternalId())
                 .build();
     }
 
-    public static User toNewEntity(UserDTO dto) {
-        Objects.requireNonNull(dto, "UserDTO não pode ser nulo");
-        User e = new User();
-        e.setName(safe(dto.name()));
-        e.setEmail(safe(dto.email()));
-        e.setExternalId(dto.externalId() != null ? dto.externalId() : UUID.randomUUID().toString());
-        return e;
+    public static User toNewEntity(UserDTO userDTO) {
+        return User.builder()
+                .name(userDTO.name())
+                .email(userDTO.email())
+                .externalId(userDTO.externalId() != null
+                        ? userDTO.externalId()
+                        : UUID.randomUUID().toString())
+                .build();
     }
 
-    public static void updateEntityFromDto(UserDTO dto, User e) {
-        Objects.requireNonNull(e, "User entity não pode ser nulo");
-        if (dto == null) return;
-        e.setName(safe(dto.name()));
-        e.setEmail(safe(dto.email()));
-    }
-
-    private static String safe(String s) {
-        return s == null ? null : s.trim();
+    public static void updateEntityFromDto(UserDTO userDTO, User userEntity) {
+        userEntity.setName(userDTO.name());
+        userEntity.setEmail(userDTO.email());
     }
 }
+
+

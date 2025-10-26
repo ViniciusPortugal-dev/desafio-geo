@@ -27,66 +27,58 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDTO createUser(UserDTO dto) {
-        log.info("Criando usuário (Service B)... email='{}'", dto != null ? dto.email() : null);
-        validate(dto);
         try {
-            User saved = userRepository.save(UserAdapter.toNewEntity(dto));
-            UserDTO out = UserAdapter.toUserDTO(saved);
-            log.info("Usuário criado. id={}, externalId={}", saved.getId(), saved.getExternalId());
+            User savedEntity = userRepository.save(UserAdapter.toNewEntity(dto));
+            UserDTO out = UserAdapter.toUserDTO(savedEntity);
+
+            log.info("User created. id={}, externalId={}", savedEntity.getId(), savedEntity.getExternalId());
+
             if (!Replication.incoming()) {
                 replicateCreate(out);
             }
             return out;
-        } catch (CustomException e) {
-            throw e;
         } catch (Exception e) {
-            log.error("Erro ao criar usuário (Service B). payload={}", dto, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao criar usuário: " + e.getMessage());
+            log.error("Error creating user (Service B). payload={}", dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error creating user");
         }
     }
 
     @Override
     @Transactional
     public UserDTO updateUser(String externalId, UserDTO dto) {
-        log.info("Atualizando usuário (Service B)... externalId={}", externalId);
-        validateExternalId(externalId);
-        validate(dto);
+        log.info("Updating user (Service B)... externalId={}", externalId);
 
-        User found = userRepository.findByExternalId(externalId)
+        User foundEntity = userRepository.findByExternalId(externalId)
                 .orElseThrow(() -> {
-                    log.warn("Usuário não encontrado para update (Service B). externalId={}", externalId);
-                    return new CustomException(HttpStatus.NOT_FOUND, "Usuário não encontrado (ID: " + externalId + ")");
+                    log.warn("User not found for update (Service B). externalId={}", externalId);
+                    return new CustomException(HttpStatus.NOT_FOUND, "User not found (externalId: " + externalId + ")");
                 });
 
         try {
-            UserAdapter.updateEntityFromDto(dto, found);
-            User saved = userRepository.save(found);
-            UserDTO out = UserAdapter.toUserDTO(saved);
+            UserAdapter.updateEntityFromDto(dto, foundEntity);
+            User savedEntity = userRepository.save(foundEntity);
+            UserDTO out = UserAdapter.toUserDTO(savedEntity);
 
             if (!Replication.incoming()) {
                 replicateUpdate(externalId, out);
             }
 
-            log.info("Usuário atualizado. externalId={}", externalId);
+            log.info("User updated (Service B). externalId={}", externalId);
             return out;
-        } catch (CustomException e) {
-            throw e;
         } catch (Exception e) {
-            log.error("Erro ao atualizar usuário (Service B). externalId={}, payload={}", externalId, dto, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao atualizar usuário: " + e.getMessage());
+            log.error("Error updating user (Service B). externalId={}, payload={}", externalId, dto, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating user");
         }
     }
 
     @Override
     @Transactional
     public void deleteUser(String externalId) {
-        log.info("Removendo usuário (Service B)... externalId={}", externalId);
-        validateExternalId(externalId);
-
+        log.info("Deleting user (Service B)... externalId={}", externalId);
         boolean exists = userRepository.existsByExternalId(externalId);
         if (!exists) {
-            log.warn("Usuário não encontrado para remoção (Service B). externalId={}", externalId);
-            throw new CustomException(HttpStatus.NOT_FOUND, "Usuário não encontrado (ID: " + externalId + ")");
+            log.warn("User not found for deletion (Service B). externalId={}", externalId);
+            throw new CustomException(HttpStatus.NOT_FOUND, "User not found (externalId: " + externalId + ")");
         }
 
         try {
@@ -96,88 +88,67 @@ public class UserServiceImpl implements UserService {
                 replicateDelete(externalId);
             }
 
-            log.info("Usuário removido. externalId={}", externalId);
-        } catch (CustomException e) {
-            throw e;
+            log.info("User deleted (Service B). externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Erro ao remover usuário (Service B). externalId={}", externalId, e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao remover usuário: " + e.getMessage());
+            log.error("Error deleting user (Service B). externalId={}", externalId, e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting user");
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDTO> listUsers() {
-        log.info("Listando usuários (Service B)...");
+        log.info("Listing users (Service B)...");
         try {
-            List<UserDTO> list = userRepository.findAll().stream()
+            List<UserDTO> result = userRepository.findAll().stream()
                     .map(UserAdapter::toUserDTO)
                     .toList();
 
-            if (list.isEmpty()) {
-                log.warn("Nenhum usuário encontrado na listagem (Service B).");
-                throw new CustomException(HttpStatus.NO_CONTENT, "Nenhum usuário encontrado.");
+            if (result.isEmpty()) {
+                log.warn("No users found (Service B).");
+                throw new CustomException(HttpStatus.NO_CONTENT, "No users found.");
             }
 
-            log.info("Listagem concluída. total={}", list.size());
-            return list;
-        } catch (CustomException e) {
-            throw e;
+            log.info("Listing completed. total={}", result.size());
+            return result;
         } catch (Exception e) {
-            log.error("Erro ao listar usuários (Service B).", e);
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao listar usuários: " + e.getMessage());
+            log.error("Error listing users (Service B).", e);
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error listing users");
         }
     }
 
     private void replicateCreate(UserDTO out) {
         try {
             userAClient.createUser(out);
-            log.info("Replicação create enviada ao Service A. externalId={}", out.externalId());
+            log.info("Create replication sent to Service A. externalId={}", out.externalId());
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (create) ao Service A. externalId={}, err={}", out.externalId(), e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar usuário para o Service A");
+            log.error("Failed to replicate user (create) to Service A. externalId={}, err={}",
+                    out.externalId(), e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "Failed to replicate user to Service A");
         }
     }
 
     private void replicateUpdate(String externalId, UserDTO out) {
         try {
             userAClient.updateUser(externalId, out);
-            log.info("Replicação update enviada ao Service A. externalId={}", externalId);
+            log.info("Update replication sent to Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (update) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar atualização de usuário para o Service A (ID: " + externalId + ")");
+            log.error("Failed to replicate user (update) to Service A. externalId={}, err={}",
+                    externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY,
+                    "Failed to replicate user update to Service A (externalId: " + externalId + ")");
         }
     }
 
     private void replicateDelete(String externalId) {
         try {
             userAClient.deleteUser(externalId);
-            log.info("Replicação delete enviada ao Service A. externalId={}", externalId);
+            log.info("Delete replication sent to Service A. externalId={}", externalId);
         } catch (Exception e) {
-            log.error("Falha ao replicar usuário (delete) ao Service A. externalId={}, err={}", externalId, e.getMessage(), e);
-            throw new CustomException(HttpStatus.BAD_GATEWAY, "Falha ao replicar exclusão de usuário para o Service A (ID: " + externalId + ")");
+            log.error("Failed to replicate user (delete) to Service A. externalId={}, err={}",
+                    externalId, e.getMessage(), e);
+            throw new CustomException(HttpStatus.BAD_GATEWAY,
+                    "Failed to replicate user deletion to Service A (externalId: " + externalId + ")");
         }
-    }
-
-    private static void validate(UserDTO dto) {
-        if (dto == null) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Payload obrigatório ausente.");
-        }
-        if (isBlank(dto.name())) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'name' é obrigatório.");
-        }
-        if (isBlank(dto.email())) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Campo 'email' é obrigatório.");
-        }
-    }
-
-    private static void validateExternalId(String externalId) {
-        if (isBlank(externalId)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Parâmetro 'externalId' é obrigatório.");
-        }
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
     }
 }

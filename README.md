@@ -297,7 +297,21 @@ curl.exe -X DELETE "http://localhost:8081/pedidos/<EXTERNAL_ID>" ^
 ---
 ### 🔹 Service B (`http://localhost:8082`)
 
+> 💡 Para listar os valores replicados diretamente no Swagger, basta clicar em **GET** nos endpoints `/usuarios` e `/pedidos` do **Service B**, depois clicar em **Execute** para visualizar os registros.
+
 **Listar replicados (GET)**  
+**Bash**
+```bash
+curl "http://localhost:8082/usuarios" -H "Authorization: Bearer authenticate-key"
+curl "http://localhost:8082/pedidos"  -H "Authorization: Bearer authenticate-key"
+```
+**PowerShell**
+```powershell
+curl.exe "http://localhost:8082/usuarios" ^
+  -H "Authorization: Bearer authenticate-key"
+curl.exe "http://localhost:8082/pedidos" ^
+  -H "Authorization: Bearer authenticate-key"
+```  
 **Bash**
 ```bash
 curl "http://localhost:8082/usuarios" -H "Authorization: Bearer authenticate-key"
@@ -311,7 +325,45 @@ curl.exe "http://localhost:8082/pedidos" ^
   -H "Authorization: Bearer authenticate-key"
 ```
 
+**Atualizar replicados (PUT /{externalId})**  
+**Bash**
+```bash
+curl -X PUT "http://localhost:8082/usuarios/<EXTERNAL_ID>" \
+  -H "Authorization: Bearer authenticate-key" \
+  -H "Content-Type: application/json" \
+  -d '{ "name":"Ana Maria", "email":"ana.maria@example.com" }'
 
+curl -X PUT "http://localhost:8082/pedidos/<EXTERNAL_ID>" \
+  -H "Authorization: Bearer authenticate-key" \
+  -H "Content-Type: application/json" \
+  -d '{ "description":"Pedido 1 atualizado", "value":150.0, "externalUserId":1, "idDelivery":1 }'
+```
+**PowerShell**
+```powershell
+curl.exe -X PUT "http://localhost:8082/usuarios/<EXTERNAL_ID>" ^
+  -H "Authorization: Bearer authenticate-key" ^
+  -H "Content-Type: application/json" ^
+  -d '{ "name":"Ana Maria", "email":"ana.maria@example.com" }'
+
+curl.exe -X PUT "http://localhost:8082/pedidos/<EXTERNAL_ID>" ^
+  -H "Authorization: Bearer authenticate-key" ^
+  -H "Content-Type: application/json" ^
+  -d '{ "description":"Pedido 1 atualizado", "value":150.0, "externalUserId":1, "idDelivery":1 }'
+```
+
+**Deletar replicados (DELETE /{externalId})**  
+**Bash**
+```bash
+curl -X DELETE "http://localhost:8082/usuarios/<EXTERNAL_ID>" -H "Authorization: Bearer authenticate-key"
+curl -X DELETE "http://localhost:8082/pedidos/<EXTERNAL_ID>"  -H "Authorization: Bearer authenticate-key"
+```
+**PowerShell**
+```powershell
+curl.exe -X DELETE "http://localhost:8082/usuarios/<EXTERNAL_ID>" ^
+  -H "Authorization: Bearer authenticate-key"
+curl.exe -X DELETE "http://localhost:8082/pedidos/<EXTERNAL_ID>" ^
+  -H "Authorization: Bearer authenticate-key"
+```
 
 ---
 ### 🔹 Service C (`http://localhost:8083`)

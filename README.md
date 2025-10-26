@@ -79,7 +79,7 @@ Clique em **Authorize** e informe `Bearer authenticate-key`.
   "phone": "+55 71 99999-0000"
 }
 ```
-- **PUT /entregadores/{id}** *(se aplicável no seu contrato; caso utilize externalId, ajuste o path no Swagger)*
+- **PUT /entregadores/{id}** 
 ```json
 {
   "name": "Carlos Souza",
